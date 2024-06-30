@@ -287,17 +287,17 @@ int howManyBits(int x) {
 
     //! Use binary search method to find the position of the highest set bit
     int b16, b8, b4, b2, b1, b0;
-    b16 = !!(x >> 16) << 4; // Check if any of the top 16 bits are set
-    x >>= b16;              // Shift right if necessary
-    b8 = !!(x >> 8) << 3;   // Check if any of the top 8 bits of the remaining bits are set
-    x >>= b8;               // Shift right if necessary
-    b4 = !!(x >> 4) << 2;   // Check if any of the top 4 bits of the remaining bits are set
-    x >>= b4;               // Shift right if necessary
-    b2 = !!(x >> 2) << 1;   // Check if any of the top 2 bits of the remaining bits are set
-    x >>= b2;               // Shift right if necessary
-    b1 = !!(x >> 1);        // Check if the top bit of the remaining bits is set
-    x >>= b1;               // Shift right if necessary
-    b0 = x;                 // The remaining bit
+    b16 = !!(x >> 16) << 4; 
+    x >>= b16;              
+    b8 = !!(x >> 8) << 3;   
+    x >>= b8;               
+    b4 = !!(x >> 4) << 2;  
+    x >>= b4;               
+    b2 = !!(x >> 2) << 1;   
+    x >>= b2;               
+    b1 = !!(x >> 1);        
+    x >>= b1;              
+    b0 = x;                
 
     // Sum up the bit shifts and add 1 for the sign bit
     return b16 + b8 + b4 + b2 + b1 + b0 + 1;
