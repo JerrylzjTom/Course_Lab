@@ -143,7 +143,7 @@ NOTES:
  *   Rating: 1
  */
 int bitXor(int x, int y) {
-  return (x & ~y) | (~x & y);
+  return ~(~x & ~y) & ~(x & y);
 }
 /* 
  * tmin - return minimum two's complement integer 
@@ -153,10 +153,7 @@ int bitXor(int x, int y) {
  */
 int tmin(void) {
   /*Convert unsigned int to two's complement int*/
-  unsigned int u = 0x80000000;
-  int result = u - (1 << 32);
-  return result;
-
+  return 1 << 31;
 }
 //2
 /*
@@ -181,7 +178,8 @@ int isTmax(int x) {
  *   Rating: 2
  */
 int allOddBits(int x) {
-  return 2;
+  int mask = 0xAAAAAAAA; // 1010101010...
+  return !((x & mask) ^ mask);
 }
 /* 
  * negate - return -x 
@@ -191,7 +189,7 @@ int allOddBits(int x) {
  *   Rating: 2
  */
 int negate(int x) {
-  return 2;
+  return ~x + 1;
 }
 //3
 /* 
@@ -204,8 +202,15 @@ int negate(int x) {
  *   Rating: 3
  */
 int isAsciiDigit(int x) {
-  return 2;
+    // 0x30 = 110000
+    // 0x39 = 111001
+    int a = (x >> 4) ^ 0x3; //If this returns 0, then we know x is valid. Otherwise, it is not. 
+    int b = ((x >> 3) & 1); //If the 8's place is 1, this returns 1. 
+    int c = !((x >> 1) & 0x3); //If the returns 0, either the 2's or the 3's place is 1. So this isn't valid if b is als 1. 
+
+    return(!a & !(b & !c));
 }
+
 /* 
  * conditional - same as x ? y : z 
  *   Example: conditional(2,4,5) = 4
@@ -214,7 +219,10 @@ int isAsciiDigit(int x) {
  *   Rating: 3
  */
 int conditional(int x, int y, int z) {
-  return 2;
+  int x_bool = !!x;
+  int mask = ~x_bool + 1; //! The bitwise NOT (~) of 1 is 0xFFFFFFFE (all bits set to 1 except the least significant bit). 
+
+  return (y & mask) | (z & ~mask);
 }
 /* 
  * isLessOrEqual - if x <= y  then return 1, else return 0 
@@ -224,7 +232,18 @@ int conditional(int x, int y, int z) {
  *   Rating: 3
  */
 int isLessOrEqual(int x, int y) {
-  return 2;
+    // Extract sign bits: 1 if negative, 0 if positive
+    int sign_x = x >> 31 & 1;
+    int sign_y = y >> 31 & 1;
+
+    int differentSigns = sign_x & !sign_y;
+
+    // Calculate whether `x` and `y` have the same sign 
+    int sameSigns = !(sign_x ^ sign_y);
+
+    int diffSign = ((y + (~x + 1)) >> 31 & 1); //! for two's complement integer, -x = ~x + 1 
+
+    return differentSigns | (sameSigns & !diffSign);
 }
 //4
 /* 
@@ -236,8 +255,19 @@ int isLessOrEqual(int x, int y) {
  *   Rating: 4 
  */
 int logicalNeg(int x) {
-  return 2;
+    // Compute -x
+    int neg_x = ~x + 1;
+
+    // Combine x and -x
+    int combined = x | neg_x;
+
+    // Shift the sign bit to the least significant bit.if x is no-zero, then the sign bit is -1, otherwise 0.
+    int sign_bit = combined >> 31;
+
+    // Add 1 to the negated sign bit to get the logical negation result
+    return (sign_bit + 1) & 1;
 }
+
 /* howManyBits - return the minimum number of bits required to represent x in
  *             two's complement
  *  Examples: howManyBits(12) = 5
@@ -251,7 +281,26 @@ int logicalNeg(int x) {
  *  Rating: 4
  */
 int howManyBits(int x) {
-  return 0;
+    int sign = x >> 31;
+    // If x is negative, we use ~x; if x is positive, we use x itself
+    x = (sign & ~x) | (~sign & x);
+
+    //! Use binary search method to find the position of the highest set bit
+    int b16, b8, b4, b2, b1, b0;
+    b16 = !!(x >> 16) << 4; // Check if any of the top 16 bits are set
+    x >>= b16;              // Shift right if necessary
+    b8 = !!(x >> 8) << 3;   // Check if any of the top 8 bits of the remaining bits are set
+    x >>= b8;               // Shift right if necessary
+    b4 = !!(x >> 4) << 2;   // Check if any of the top 4 bits of the remaining bits are set
+    x >>= b4;               // Shift right if necessary
+    b2 = !!(x >> 2) << 1;   // Check if any of the top 2 bits of the remaining bits are set
+    x >>= b2;               // Shift right if necessary
+    b1 = !!(x >> 1);        // Check if the top bit of the remaining bits is set
+    x >>= b1;               // Shift right if necessary
+    b0 = x;                 // The remaining bit
+
+    // Sum up the bit shifts and add 1 for the sign bit
+    return b16 + b8 + b4 + b2 + b1 + b0 + 1;
 }
 //float
 /* 
