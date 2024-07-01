@@ -315,7 +315,28 @@ int howManyBits(int x) {
  *   Rating: 4
  */
 unsigned floatScale2(unsigned uf) {
-  return 2;
+    unsigned sign = uf & 0x80000000;   // Extract sign bit
+    unsigned exponent = uf & 0x7F800000; // Extract exponent bits
+    unsigned fraction = uf & 0x007FFFFF; // Extract fraction bits
+
+    // Special cases: NaN or infinity
+    if (exponent == 0x7F800000) {
+        return uf; // NaN or infinity, return uf
+    }
+
+    // Denormalized number
+    if (exponent == 0) {
+        fraction <<= 1; // Shift fraction left by 1
+    } else {
+        exponent += 0x00800000; // Increment exponent to multiply by 2
+        if (exponent >= 0x7F800000) {
+            // Handle overflow: set to infinity
+            exponent = 0x7F800000;
+            fraction = 0;
+        }
+    }
+
+    return sign | exponent | fraction; // Combine sign, exponent, and fraction
 }
 /* 
  * floatFloat2Int - Return bit-level equivalent of expression (int) f
@@ -330,8 +351,45 @@ unsigned floatScale2(unsigned uf) {
  *   Rating: 4
  */
 int floatFloat2Int(unsigned uf) {
-  return 2;
+    unsigned sign = (uf >> 31) & 1;   // Extract sign bit
+    int exp = (uf >> 23) & 0xFF;      // Extract exponent bits
+    unsigned frac = uf & 0x007FFFFF;  // Extract fraction bits
+
+    if (exp == 0xFF) {
+        // NaN or infinity
+        return 0x80000000u;
+    }
+
+    int e = exp - 127;  // Calculate the actual exponent
+
+    if (e < 0) {
+        // Exponent is negative, result is less than 1
+        return 0;
+    }
+
+    if (e > 31) {
+        // Out of range for int
+        return 0x80000000u;
+    }
+
+    // Normalized number, add the implicit leading 1
+    unsigned mantissa = frac | 0x00800000;
+
+    // Shift the mantissa based on the exponent
+    if (e > 23) {
+        mantissa <<= (e - 23);
+    } else {
+        mantissa >>= (23 - e);
+    }
+
+    // Apply the sign
+    if (sign) {
+        mantissa = -mantissa;
+    }
+
+    return (int)mantissa;
 }
+
 /* 
  * floatPower2 - Return bit-level equivalent of the expression 2.0^x
  *   (2.0 raised to the power x) for any 32-bit integer x.
@@ -346,5 +404,20 @@ int floatFloat2Int(unsigned uf) {
  *   Rating: 4
  */
 unsigned floatPower2(int x) {
-    return 2;
+    int result;
+    int inf_limit = 0x7F800000; 
+    int denorm_limit = 0x00800000;  // Minimum denormal in IEEE 754 single precision
+
+    if (x < -126) {
+      return 0;
+    }
+     // Calculate biased exponent
+    int biased_exp = x + 127;
+    if (biased_exp > 255) {
+      return inf_limit;
+    }
+    
+    result = biased_exp << 23;
+
+    return result;
 }
